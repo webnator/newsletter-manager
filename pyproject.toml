@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "newsletter-manager"
+version = "0.1.0"
+description = "Local-first newsletter editions, Git evidence and Brevo drafts"
+requires-python = ">=3.10"
+license = "MIT"
+readme = "README.md"
+dependencies = []
+[project.scripts]
+newsletter-manager = "newsletter_manager.cli:main"
+[tool.setuptools.packages.find]
+include = ["newsletter_manager*"]

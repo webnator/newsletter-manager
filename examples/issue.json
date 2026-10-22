@@ -1,0 +1,9 @@
+{
+  "id": "issue-001",
+  "subject": "A smaller, faster release",
+  "preheader": "What changed this week and what comes next.",
+  "sections": [
+    {"title": "What shipped", "text": "We simplified the setup flow. This is sample content, replace it with your verified update.", "url": "https://example.com/changelog"},
+    {"title": "Next up", "text": "A short explanation of what you are exploring next."}
+  ]
+}
