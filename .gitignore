@@ -8,3 +8,5 @@ dist/
 output/
 newsletter.json
 .newsletter-state.json*
+
+!examples/newsletter.json

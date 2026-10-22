@@ -1,0 +1,8 @@
+{
+  "publication": "The Build Log",
+  "provider": "brevo",
+  "sender": {"name": "The Build Log", "email": "editor@example.com"},
+  "list_ids": [1],
+  "footer": "Your business name and mailing address. You subscribed to our updates.",
+  "repositories": []
+}
