@@ -1,6 +1,6 @@
 # Newsletter Manager
 
-A small, local-first workflow for recurring newsletters: collect Git evidence, write an edition as JSON, render HTML and plain text, and create a draft in Brevo. No runtime Python dependencies, web app or model subscription required.
+A small, local-first workflow for recurring newsletters: collect Git evidence, write an edition as JSON, render HTML and plain text, create and revise a draft, send a test, and schedule the approved edition in Brevo. No runtime Python dependencies, web app or model subscription required.
 
 Extracted and generalized from a personal weekly newsletter workflow. It does not scrape your inbox, read assistant transcripts or assume a particular brand, directory or contact list.
 
@@ -56,18 +56,32 @@ python3 -m newsletter_manager test 123 --to you@example.com
 python3 -m newsletter_manager test 123 --to you@example.com --apply
 ```
 
-Finish the audience review and actual campaign send in Brevo. There is deliberately no bulk-send command. Brevo creates campaigns in draft status by default; see its [campaign API](https://developers.brevo.com/reference/create-email-campaign) and [test-send API](https://developers.brevo.com/reference/send-test-email). The HTML includes Brevo's unsubscribe placeholder. Verify unsubscribe behavior, sender identity, recipient consent and the footer in a real test before a campaign send.
+After reviewing the test email, revise the existing draft or schedule the approved edition:
+
+```sh
+python3 -m newsletter_manager update 123 editions/issue-002.json --apply
+python3 -m newsletter_manager schedule 123 editions/issue-002.json --at '2099-01-01T10:00:00+01:00'
+# Replace the example date with the approved date and offset, then add --apply.
+```
+
+Scheduling with `--apply` causes Brevo to send to the configured audience at that time. Preview commands are offline. The schedule command requires a future timezone-aware timestamp, an unscheduled draft, and matching remote content, sender and list IDs. It verifies the resulting queued status and timestamp. Provider normalization of HTML can cause a conservative mismatch; inspect and schedule in the dashboard instead of bypassing the check. Complex audiences with segments or exclusions should also be managed in the dashboard. Cancel or reschedule a queued campaign in Brevo. See the [update API](https://developers.brevo.com/reference/update-email-campaign).
+
+There is no immediate audience-wide send command. Brevo creates campaigns in draft status by default; see its [campaign API](https://developers.brevo.com/reference/create-email-campaign) and [test-send API](https://developers.brevo.com/reference/send-test-email). The HTML includes Brevo's unsubscribe placeholder. Verify unsubscribe behavior, sender identity, recipient consent and the footer in a real test before a campaign send.
 
 Receipts are stored in `.newsletter-state.json` with owner-only permissions. Reusing an issue ID is refused, including after a network error whose result is uncertain. Check the Brevo dashboard and reconcile the receipt before retrying. There are no automatic retries for creation or sending. Run one invocation at a time against a state file; this is a local CLI, not a distributed scheduler.
 
 ## Extend it
 
 - `core.py`: issue validation, HTML/text rendering and Git evidence collection. Customize the template here or add a renderer with the same `(html, text)` result.
-- `brevo.py`: provider HTTP adapter with timeouts and redirects disabled. Implement `create_draft(issue, html, config)`, `send_test(id, recipients)` and `campaign(id)` for another provider.
+- `brevo.py`: provider HTTP adapter with timeouts and redirects disabled. Implement `create_draft(issue, html, config)`, `send_test(id, recipients)` , `campaign(id)` and `update(id, payload)` for another provider. Adapt the Brevo-specific response validation in `delivery.py` as well.
 - `cli.py`: commands and local receipts. Register adapters in `PROVIDERS`, and adapt provider-specific unsubscribe handling before using a different provider.
 - Add new evidence sources as explicit collectors that return data. Keep them separate from delivery operations.
 
-A CLI is the simplest distribution for both humans and coding agents. No separate skill installation is required: an agent can run the same preview commands and show the resulting edition before you authorize a remote draft or test email.
+## Optional agent skill
+
+The reusable workflow lives in [skills/newsletter-manager/SKILL.md](skills/newsletter-manager/SKILL.md): evidence collection, editorial questions, writing, review, test, revision and approved scheduling. Copy that directory into your assistant's skill directory (for example `~/.codex/skills/newsletter-manager` or your project's `.claude/skills/newsletter-manager`). Install the CLI separately using the instructions above. The skill uses your assistant's existing model and tools; the CLI itself does not call an LLM.
+
+Provide your own voice guide, previous edition and relevant notes. The built-in collector reads Git only; other evidence comes from explicitly provided files or your assistant's connected tools. No original conversation history or private brand content is bundled.
 
 ## Development and limitations
 
@@ -76,6 +90,6 @@ python3 -m unittest discover -s tests -v
 python3 -m compileall -q newsletter_manager
 ```
 
-Tests use mocks and temporary files, never real lists or email sends. Coverage includes escaping, draft payloads, preview behavior, duplicate receipts and uncertain failures. No live Brevo campaign has been created as part of this release validation. No rich-text editor, analytics dashboard, scheduling service or automatic copy generation is included.
+Tests use mocks and temporary files, never real lists or email sends. Coverage includes escaping, draft payloads, preview behavior, duplicate receipts and uncertain failures. No live Brevo campaign has been created as part of this release validation. No rich-text editor, analytics dashboard or background scheduler is included. Scheduling is delegated to Brevo; copy generation is optional through the skill and your assistant.
 
 MIT licensed.

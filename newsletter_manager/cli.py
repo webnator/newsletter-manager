@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 from .brevo import Brevo, ProviderError
+from .delivery import deliver
 from .core import load_json, render, collect, validate_provider_config
 
 PROVIDERS = {'brevo': Brevo}
@@ -25,12 +26,17 @@ def main(argv=None):
     p = sub.add_parser('test', help='Send a test email to explicitly named recipients')
     p.add_argument('campaign_id', type=int); p.add_argument('--to', required=True, action='append'); p.add_argument('--apply', action='store_true')
     p = sub.add_parser('status'); p.add_argument('campaign_id', type=int)
+    for command in ('update', 'schedule'):
+        p = sub.add_parser(command, help='Preview changes; --apply updates the remote draft')
+        p.add_argument('campaign_id', type=int); p.add_argument('issue')
+        p.add_argument('--apply', action='store_true')
+        if command == 'schedule': p.add_argument('--at', required=True)
     args = parser.parse_args(argv)
     try:
         config = load_json(args.config)
         if args.command == 'collect':
             print(json.dumps(collect(config, args.days), indent=2)); return 0
-        if args.command in ('render', 'draft'):
+        if args.command in ('render', 'draft', 'update', 'schedule'):
             issue = load_json(args.issue)
             html, text = render(issue, config)
             if args.command == 'render':
@@ -60,6 +66,9 @@ def main(argv=None):
             state[key].update(status='created', campaign_id=result['id'])
             save_state(state_path, state)
             print(json.dumps(state[key], indent=2))
+        elif args.command in ('update', 'schedule'):
+            print(json.dumps(deliver(provider, args.command, args.campaign_id, issue, html, config,
+                                     args.apply, getattr(args, 'at', None)), indent=2))
         elif args.command == 'test':
             if args.campaign_id <= 0 or any('@' not in email for email in args.to):
                 raise ValueError('Positive campaign id and valid test recipient emails required')

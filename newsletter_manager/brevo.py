@@ -52,3 +52,6 @@ class Brevo:
 
     def campaign(self, campaign_id):
         return self.call(f'/emailCampaigns/{int(campaign_id)}')
+
+    def update(self, campaign_id, payload):
+        return self.call(f'/emailCampaigns/{int(campaign_id)}', 'PUT', payload)
